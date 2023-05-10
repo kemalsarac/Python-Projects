@@ -1,0 +1,71 @@
+import gpsd
+import time
+import keyboard
+
+# GPS'yi başlatın
+gpsd.connect()
+
+# Değişkenleri başlatın
+start_time = 0
+end_time = 0
+distance = 0
+fuel_consumed = 0
+prev_lat = 0
+prev_lon = 0
+prev_time = 0
+
+# Programı başlatmak için 'B' tuşuna basın
+print("Program başlatmak için 'B' tuşuna basın...")
+keyboard.wait('b')
+
+# Başlangıç zamanını kaydedin
+start_time = time.time()
+
+try:
+    while True:
+        # GPS bilgilerini alın
+        packet = gpsd.get_current()
+
+        # Koordinatları alın
+        lat = packet.position()[0]
+        lon = packet.position()[1]
+
+        # Anlık hızı alın
+        speed = packet.speed()
+
+        # Yol mesafesini hesaplayın
+        if prev_lat != 0 and prev_lon != 0:
+            dist = gpsd.distance(prev_lat, prev_lon, lat, lon)
+            distance += dist
+
+            # Yakıt tüketimini hesaplayın
+            time_diff = packet.get_time() - prev_time
+            fuel_consumed += dist / speed * time_diff
+
+        # Önceki bilgileri güncelleyin
+        prev_lat = lat
+        prev_lon = lon
+        prev_time = packet.get_time()
+
+        # Anlık hızı yazdırın
+        print("Anlık hız:", speed)
+
+        # Programı durdurmak için 'S' tuşuna basın
+        if keyboard.is_pressed('s'):
+            end_time = time.time()
+            break
+
+except KeyboardInterrupt:
+    pass
+
+# Programın çalışma süresini hesaplayın
+run_time = end_time - start_time
+
+# Ortalama yakıt tüketimini hesaplayın
+avg_fuel_consumption = fuel_consumed / distance * 100
+
+# Sonuçları yazdırın
+print("Toplam mesafe:", distance, "km")
+print("Toplam yakıt tüketimi:", fuel_consumed, "L")
+print("Ortalama yakıt tüketimi:", avg_fuel_consumption, "L/100km")
+print("Program çalışma süresi:", run_time, "s")
